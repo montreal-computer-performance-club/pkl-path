@@ -1,3 +1,4 @@
 /// A file system path.
 class Path {
+  path: String
 }

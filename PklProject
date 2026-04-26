@@ -1,0 +1,17 @@
+amends "pkl:Project"
+
+package {
+  name = "pkl-path"
+  version = "0.0.1"
+  baseUri = "package://github.com/montreal-computer-performance-club/\(name)"
+  packageZipUrl = "https://github.com/montreal-computer-performance-club/\(name)/releases/download/\(version)/\(name)@\(version).zip"
+  license = "Apache-2.0"
+  authors {
+    "Simon Génier <sgenier@pm.me>"
+  }
+  exclude {
+    "tests/**"
+  }
+}
+
+tests = import*("tests/**.pkl").keys.toListing()

@@ -3,20 +3,53 @@
 This library provides a `Path` type for Pkl, allowing strongly typed
 manipulation of paths.
 
-## Normalization Policy
+## Usage
 
-`pkl-path` does not automatically normalize `.` or `..` segments.
+A path is stored in a canonical lexical form, such that path equality can be
+checked by directly comparing them. Repeated and trailing separators are
+respectively collapsed and removed, except for the root path `/`.
 
-For example, `/srv/app/./config.pkl` preserves the explicit `./` segment. That
-segment can carry useful intent in configuration, such as marking a pivot point
-for a later `read*` operation or for another tool that interprets the path.
+Paths are created with the factory function `unix`.
 
-The library also does not automatically collapse `..` segments. Lexically,
-`/a/b/../c` may look equivalent to `/a/c`, but that equivalence can be false on
-real filesystems because of symlinks, mount points, bind mounts, chroot-like
-contexts, or remote path semantics. Since Pkl configuration often targets
-systems other than the machine evaluating the config, this library preserves the
-path the user wrote unless an explicit lexical transformation is requested.
+```pkl
+import "Path.pkl"
+
+config = Path.unix("/srv/app/appsettings.json")
+
+config == Path.unix("/srv/app/.//appsettings.json")
+config.path == "/srv/app/appsettings.json"
+config.isAbsolute
+config.parts == List("/", "srv", "app", "appsettings.json")
+```
+
+Relative paths are also representable.
+
+```pkl
+state = Path.unix("../state/")
+
+state.path == "../state"
+state.isRelative
+state.parts == List("..", "state")
+```
+
+An empty path represents the current directory, like `.`.
+
+```pkl
+current = Path.unix("")
+
+current == Path.unix(".")
+current.path == "."
+current.parts == List(".")
+```
+
+When a trailing separator matters for a command-line tool or wire format, render
+it explicitly:
+
+```pkl
+target = Path.unix("target")
+
+command = "rsync source/ \(target.withTrailingSlash())
+```
 
 ## Limitations
 

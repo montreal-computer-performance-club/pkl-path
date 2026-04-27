@@ -1,0 +1,64 @@
+amends "pkl:test"
+
+import "../Path.pkl"
+
+facts {
+  ["stores canonical unix path strings"] {
+    Path.unix("foo").path == "foo"
+    Path.unix("foo/").path == "foo"
+    Path.unix("/").path == "/"
+    Path.unix("///").path == "/"
+    Path.unix("/srv//app///lib/").path == "/srv/app/lib"
+    Path.unix("").path == "."
+  }
+
+  ["tracks absolute and relative paths"] {
+    Path.unix("/srv/app").isAbsolute
+    !Path.unix("/srv/app").isRelative
+    Path.unix("srv/app").isRelative
+    !Path.unix("srv/app").isAbsolute
+    Path.unix("/").isAbsolute
+    !Path.unix("/").isRelative
+    Path.unix("").isRelative
+    !Path.unix("").isAbsolute
+  }
+
+  ["exposes parts including unix root"] {
+    Path.unix("/srv/app/./config.pkl").parts == List("/", "srv", "app", "config.pkl")
+    Path.unix("../state/").parts == List("..", "state")
+    Path.unix(".config").parts == List(".config")
+    Path.unix("/").parts == List("/")
+    Path.unix("").parts == List(".")
+  }
+
+  ["removes extraneous dots"] {
+    Path.unix(".").path == "."
+    Path.unix("/.").path == "/"
+    Path.unix("/./.").path == "/"
+    Path.unix("./").path == "."
+    Path.unix("././").path == "."
+    Path.unix("/./").path == "/"
+    Path.unix("/././").path == "/"
+    Path.unix("././foo").path == "foo"
+    Path.unix("foo/./.").path == "foo"
+    Path.unix("foo/././foo").path == "foo/foo"
+    Path.unix("././.config").path == ".config"
+    Path.unix(".config/./.").path == ".config"
+    Path.unix(".config/././.config").path == ".config/.config"
+    Path.unix("./../.config").path == "../.config"
+  }
+
+  ["preserves dot-dot parts"] {
+    Path.unix("/srv/app/../config.pkl").path == "/srv/app/../config.pkl"
+    Path.unix("../srv").parts == List("..", "srv")
+    Path.unix("srv/..").parts == List("srv", "..")
+  }
+
+  ["renders path strings"] {
+    Path.unix("/srv/app").toString() == "/srv/app"
+    Path.unix("/srv/app").withTrailingSlash() == "/srv/app/"
+    Path.unix("foo").withTrailingSlash() == "foo/"
+    Path.unix("/").withTrailingSlash() == "/"
+    Path.unix("").withTrailingSlash() == "./"
+  }
+}

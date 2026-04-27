@@ -3,3 +3,7 @@
 .dolt/
 *.db
 .beads-credential-key
+
+# Pkl generated metadata
+.pkl-lsp/
+PklProject.deps.json

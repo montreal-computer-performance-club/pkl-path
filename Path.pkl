@@ -1,4 +1,54 @@
-/// A file system path.
-class Path {
-  path: String
-}
+/// A filesystem path name.
+module pklpath.Path
+
+/// Creates a path from a string.
+///
+/// Separator runs are collapsed, extraneous `.` parts and trailing slashes are
+/// dropped and an empty path is represented as `.`.
+function unix(value: String): module =
+  let (collapseSeparators = (value) -> value.replaceAll(Regex("/+"), "/"))
+  let (
+    dropTrailingSlash = (value) ->
+      if (value != root && value.endsWith("/")) value.dropLast(1) else value
+  )
+  let (
+    dropDots = (value) ->
+      value
+        .replaceFirst(Regex(#"^(\./(?!$))+"#), "")
+        .replaceAll(Regex(#"/(\./)+"#), "/")
+        .replaceFirst(Regex(#"(((?<!^)/|(?<=^/))\.)+$"#), "")
+  )
+    (module) {
+      path =
+        if (value.isEmpty)
+          "."
+        else
+          value |> collapseSeparators |> dropTrailingSlash |> dropDots
+    }
+
+/// The path after Unix separator normalization.
+path: String(!isEmpty)
+
+/// The path separator for Unix paths.
+fixed separator: "/" = "/"
+
+/// The root path.
+fixed root: "/" = "/"
+
+/// Tells whether this path starts at the filesystem root.
+fixed isAbsolute: Boolean = path.startsWith(separator)
+
+/// Tells whether this path does not start at the filesystem root.
+fixed isRelative: Boolean = !isAbsolute
+
+/// Tells whether this path is the root of the filesystem.
+fixed isRoot: Boolean = path == root
+
+/// The parts, including the root marker for absolute paths.
+fixed parts: List<String>(!isEmpty) =
+  let (rawSegments = path.split(separator))
+    if (isAbsolute) List(separator) + rawSegments.drop(1) else rawSegments
+
+function toString(): String = path
+
+function withTrailingSlash(): String = if (isRoot) path else "\(path)\(separator)"

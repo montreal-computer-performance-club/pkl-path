@@ -48,7 +48,41 @@ it explicitly:
 ```pkl
 target = Path.unix("target")
 
-command = "rsync source/ \(target.withTrailingSlash())
+command = "rsync source/ \(target.withTrailingSlash())"
+```
+
+A path's segments can be inspected without parsing strings yourself.
+
+```pkl
+config = Path.unix("/srv/app/config.tar.gz")
+
+config.name == "config.tar.gz"
+config.stem == "config.tar"
+config.suffix == ".gz"
+config.suffixes == List(".tar", ".gz")
+config.parent() == Path.unix("/srv/app")
+config.parents() == List(Path.unix("/srv/app"), Path.unix("/srv"), Path.unix("/"))
+```
+
+Two paths can be joined. A relative path is appended to the base; an absolute
+path replaces it.
+
+```pkl
+base = Path.unix("/srv/app")
+
+base.join(Path.unix("config.pkl")) == Path.unix("/srv/app/config.pkl")
+base.join(Path.unix("/etc/override.pkl")) == Path.unix("/etc/override.pkl")
+```
+
+`Path` is purely lexical: `..` segments are preserved rather than resolved
+against the preceding segment, since the program cannot know how the host's
+symbolic links would resolve them.
+
+```pkl
+nested = Path.unix("/srv/app").join(Path.unix("../etc"))
+
+nested.path == "/srv/app/../etc"
+nested.parent() == Path.unix("/srv/app/..")
 ```
 
 ## Limitations

@@ -49,6 +49,59 @@ fixed parts: List<String>(!isEmpty) =
   let (rawSegments = path.split(separator))
     if (isAbsolute) List(separator) + rawSegments.drop(1) else rawSegments
 
+/// The final segment of the path, or empty when the path has no segment.
+///
+/// Root and the current-directory path have no name. `..` is treated as a
+/// regular segment and so has the name `..`.
+fixed name: String =
+  if (isRoot || path == ".") "" else parts.last
+
+/// The final extension of `name`, including its leading dot, or empty when
+/// `name` has none. A leading or trailing dot in `name` is not treated as an
+/// extension boundary, so `.bashrc` and `foo.` have no suffix.
+fixed suffix: String =
+  if (!name.contains("."))
+    ""
+  else
+    let (i = name.lastIndexOf("."))
+      if (i > 0 && i < name.length - 1) name.drop(i) else ""
+
+/// `name` with its final `suffix` removed.
+fixed stem: String =
+  if (suffix.isEmpty) name else name.dropLast(suffix.length)
+
+/// The extensions on `name`, ordered from outermost to innermost. Hidden
+/// files like `.bashrc` and names ending in `.` have no suffixes.
+fixed suffixes: List<String> =
+  if (name.isEmpty || name.endsWith("."))
+    List()
+  else
+    name.replaceFirst(Regex(#"^\.+"#), "").split(".").drop(1).map((s) -> ".\(s)")
+
+/// The path with its final segment removed.
+///
+/// Root and the current-directory path are their own parent. Other
+/// single-segment paths have `.` as their parent. The result is purely
+/// lexical, so `foo/..` has `foo` as its parent.
+function parent(): module =
+  if (isRoot || path == ".")
+    unix(path)
+  else if (parts.length == 1)
+    unix(".")
+  else
+    let (init = parts.dropLast(1))
+      if (isAbsolute)
+        unix("\(separator)\(init.drop(1).join(separator))")
+      else
+        unix(init.join(separator))
+
+/// The chain of ancestors, ordered from immediate parent outward.
+function parents(): List<module> =
+  if (isRoot || path == ".")
+    List()
+  else
+    let (p = parent()) List(p) + p.parents()
+
 function toString(): String = path
 
 function withTrailingSlash(): String = if (isRoot) path else "\(path)\(separator)"

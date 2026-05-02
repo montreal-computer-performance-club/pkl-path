@@ -100,4 +100,79 @@ facts {
     Path.unix("/").join(Path.unix("..")) == Path.unix("/..")
     Path.unix("..").join(Path.unix("..")) == Path.unix("../..")
   }
+
+  ["exposes the name of the final segment"] {
+    Path.unix("/srv/app/config.pkl").name == "config.pkl"
+    Path.unix("foo/bar").name == "bar"
+    Path.unix("foo").name == "foo"
+    Path.unix("foo/").name == "foo"
+    Path.unix(".bashrc").name == ".bashrc"
+    Path.unix("..").name == ".."
+    Path.unix("foo/..").name == ".."
+    Path.unix("/").name == ""
+    Path.unix(".").name == ""
+    Path.unix("").name == ""
+  }
+
+  ["exposes the suffix and stem of the name"] {
+    Path.unix("config.pkl").suffix == ".pkl"
+    Path.unix("config.pkl").stem == "config"
+    Path.unix("/srv/app/config.pkl").suffix == ".pkl"
+    Path.unix("/srv/app/config.pkl").stem == "config"
+    Path.unix("archive.tar.gz").suffix == ".gz"
+    Path.unix("archive.tar.gz").stem == "archive.tar"
+    Path.unix(".bashrc").suffix == ""
+    Path.unix(".bashrc").stem == ".bashrc"
+    Path.unix(".tar.gz").suffix == ".gz"
+    Path.unix(".tar.gz").stem == ".tar"
+    Path.unix("README").suffix == ""
+    Path.unix("README").stem == "README"
+    Path.unix("foo.").suffix == ""
+    Path.unix("foo.").stem == "foo."
+    Path.unix("..").suffix == ""
+    Path.unix("..").stem == ".."
+    Path.unix("/").suffix == ""
+    Path.unix("/").stem == ""
+    Path.unix(".").suffix == ""
+    Path.unix(".").stem == ""
+  }
+
+  ["lists every suffix from outermost to innermost"] {
+    Path.unix("archive.tar.gz").suffixes == List(".tar", ".gz")
+    Path.unix("config.pkl").suffixes == List(".pkl")
+    Path.unix(".tar.gz").suffixes == List(".gz")
+    Path.unix(".bashrc").suffixes == List()
+    Path.unix("README").suffixes == List()
+    Path.unix("foo.").suffixes == List()
+    Path.unix("..").suffixes == List()
+    Path.unix("/").suffixes == List()
+    Path.unix(".").suffixes == List()
+  }
+
+  ["exposes the parent path"] {
+    Path.unix("/srv/app/config.pkl").parent() == Path.unix("/srv/app")
+    Path.unix("/foo").parent() == Path.unix("/")
+    Path.unix("foo/bar/baz").parent() == Path.unix("foo/bar")
+    Path.unix("foo/bar").parent() == Path.unix("foo")
+    Path.unix("foo").parent() == Path.unix(".")
+    Path.unix("..").parent() == Path.unix(".")
+    Path.unix("foo/..").parent() == Path.unix("foo")
+    Path.unix("../bar").parent() == Path.unix("..")
+    Path.unix("/").parent() == Path.unix("/")
+    Path.unix(".").parent() == Path.unix(".")
+    Path.unix("").parent() == Path.unix(".")
+    Path.unix("foo/").parent() == Path.unix(".")
+  }
+
+  ["lists ancestors from immediate parent outward"] {
+    Path.unix("/srv/app/config.pkl").parents()
+      == List(Path.unix("/srv/app"), Path.unix("/srv"), Path.unix("/"))
+    Path.unix("foo/bar/baz").parents()
+      == List(Path.unix("foo/bar"), Path.unix("foo"), Path.unix("."))
+    Path.unix("/foo").parents() == List(Path.unix("/"))
+    Path.unix("foo").parents() == List(Path.unix("."))
+    Path.unix("..").parents() == List(Path.unix("."))
+    Path.unix("/").parents() == List()
+    Path.unix(".").parents() == List()
+  }
 }

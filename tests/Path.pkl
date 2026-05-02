@@ -61,4 +61,43 @@ facts {
     Path.unix("/").withTrailingSlash() == "/"
     Path.unix("").withTrailingSlash() == "./"
   }
+
+  ["appends segments when joining a relative path"] {
+    Path.unix("foo").join(Path.unix("bar")) == Path.unix("foo/bar")
+    Path.unix("foo/bar").join(Path.unix("baz/qux")) == Path.unix("foo/bar/baz/qux")
+    Path.unix("/srv").join(Path.unix("app/config.pkl")) == Path.unix("/srv/app/config.pkl")
+    Path.unix("foo/").join(Path.unix("bar")) == Path.unix("foo/bar")
+    Path.unix("foo").join(Path.unix("bar/")) == Path.unix("foo/bar")
+  }
+
+  ["replaces the base when joining an absolute path"] {
+    Path.unix("foo").join(Path.unix("/bar")) == Path.unix("/bar")
+    Path.unix("/srv/app").join(Path.unix("/etc")) == Path.unix("/etc")
+    Path.unix(".").join(Path.unix("/")) == Path.unix("/")
+    Path.unix("/").join(Path.unix("/etc")) == Path.unix("/etc")
+  }
+
+  ["joins from and onto the root path"] {
+    Path.unix("/").join(Path.unix("etc")) == Path.unix("/etc")
+    Path.unix("/").join(Path.unix("etc/passwd")) == Path.unix("/etc/passwd")
+    Path.unix("/").join(Path.unix(".")) == Path.unix("/")
+    Path.unix("/").join(Path.unix("")) == Path.unix("/")
+  }
+
+  ["treats the current-directory path as an identity when joining"] {
+    Path.unix("foo").join(Path.unix(".")) == Path.unix("foo")
+    Path.unix(".").join(Path.unix("foo")) == Path.unix("foo")
+    Path.unix("foo").join(Path.unix("")) == Path.unix("foo")
+    Path.unix("").join(Path.unix("foo")) == Path.unix("foo")
+    Path.unix(".").join(Path.unix(".")) == Path.unix(".")
+    Path.unix("").join(Path.unix("")) == Path.unix(".")
+  }
+
+  ["preserves dot-dot segments when joining"] {
+    Path.unix("foo").join(Path.unix("..")) == Path.unix("foo/..")
+    Path.unix("foo").join(Path.unix("../bar")) == Path.unix("foo/../bar")
+    Path.unix("foo/bar").join(Path.unix("../..")) == Path.unix("foo/bar/../..")
+    Path.unix("/").join(Path.unix("..")) == Path.unix("/..")
+    Path.unix("..").join(Path.unix("..")) == Path.unix("../..")
+  }
 }

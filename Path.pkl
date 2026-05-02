@@ -52,3 +52,12 @@ fixed parts: List<String>(!isEmpty) =
 function toString(): String = path
 
 function withTrailingSlash(): String = if (isRoot) path else "\(path)\(separator)"
+
+/// Joins this path with `other`.
+///
+/// A relative `other` is appended to this path. An absolute `other` replaces
+/// this path entirely. The result is purely lexical: `..` segments are
+/// preserved rather than resolved against the preceding component.
+function join(other: module): module =
+  if (other.isAbsolute) other
+  else unix("\(path)\(separator)\(other.path)")

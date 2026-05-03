@@ -53,8 +53,7 @@ fixed parts: List<String>(!isEmpty) =
 ///
 /// Root and the current-directory path have no name. `..` is treated as a
 /// regular segment and so has the name `..`.
-fixed name: String =
-  if (isRoot || path == ".") "" else parts.last
+fixed name: String = if (isRoot || path == ".") "" else parts.last
 
 /// The final extension of `name`, including its leading dot, or empty when
 /// `name` has none. A leading or trailing dot in `name` is not treated as an
@@ -67,8 +66,7 @@ fixed suffix: String =
       if (i > 0 && i < name.length - 1) name.drop(i) else ""
 
 /// `name` with its final `suffix` removed.
-fixed stem: String =
-  if (suffix.isEmpty) name else name.dropLast(suffix.length)
+fixed stem: String = if (suffix.isEmpty) name else name.dropLast(suffix.length)
 
 /// The extensions on `name`, ordered from outermost to innermost. Hidden
 /// files like `.bashrc` and names ending in `.` have no suffixes.
@@ -112,5 +110,7 @@ function withTrailingSlash(): String = if (isRoot) path else "\(path)\(separator
 /// this path entirely. The result is purely lexical: `..` segments are
 /// preserved rather than resolved against the preceding component.
 function join(other: module): module =
-  if (other.isAbsolute) other
-  else unix("\(path)\(separator)\(other.path)")
+  if (other.isAbsolute)
+    other
+  else
+    unix("\(path)\(separator)\(other.path)")

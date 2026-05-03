@@ -1,7 +1,7 @@
 # Pkl Path
 
-This library provides a `Path` type for Pkl, allowing strongly typed
-manipulation of paths.
+This library provides a `Path` type for Pkl, allowing strongly typed operations,
+such as syntactical normalization, splitting, and joining.
 
 ## Usage
 

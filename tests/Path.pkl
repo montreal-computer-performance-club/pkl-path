@@ -24,11 +24,19 @@ facts {
   }
 
   ["exposes parts including unix root"] {
-    Path.unix("/srv/app/./config.pkl").parts == List("/", "srv", "app", "config.pkl")
-    Path.unix("../state/").parts == List("..", "state")
-    Path.unix(".config").parts == List(".config")
-    Path.unix("/").parts == List("/")
-    Path.unix("").parts == List(".")
+    Path.unix("/srv/app/./config.pkl").parts == List(
+      new Path.Anchor { value = "/" },
+      new Path.Normal { value = "srv" },
+      new Path.Normal { value = "app" },
+      new Path.Normal { value = "config.pkl" }
+    )
+    Path.unix("../state/").parts == List(
+      new Path.ParentDir {},
+      new Path.Normal { value = "state" }
+    )
+    Path.unix(".config").parts == List(new Path.Normal { value = ".config" })
+    Path.unix("/").parts == List(new Path.Anchor { value = "/" })
+    Path.unix("").parts == List(new Path.CurrentDir {})
   }
 
   ["removes extraneous dots"] {
@@ -50,8 +58,14 @@ facts {
 
   ["preserves dot-dot parts"] {
     Path.unix("/srv/app/../config.pkl").path == "/srv/app/../config.pkl"
-    Path.unix("../srv").parts == List("..", "srv")
-    Path.unix("srv/..").parts == List("srv", "..")
+    Path.unix("../srv").parts == List(
+      new Path.ParentDir {},
+      new Path.Normal { value = "srv" }
+    )
+    Path.unix("srv/..").parts == List(
+      new Path.Normal { value = "srv" },
+      new Path.ParentDir {}
+    )
   }
 
   ["renders path strings"] {

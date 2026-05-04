@@ -1,30 +1,56 @@
 /// A filesystem path name.
 module pklpath.Path
 
+/// A component of a path: an anchor, a regular segment, `..`, or the
+/// current-directory marker `.`.
+typealias Component = Anchor | Normal | ParentDir | CurrentDir
+
+/// The anchor of an absolute path. For Unix this is `"/"`. The anchor is always
+/// the first element of `parts` when the path is absolute.
+class Anchor {
+  value: String(!isEmpty)
+  function toString(): String = value
+}
+
+/// A regular path segment.
+class Normal {
+  value: String(!isEmpty)
+  function toString(): String = value
+}
+
+/// A `..` segment, preserved lexically rather than resolved against a preceding
+/// component.
+class ParentDir {
+  function toString(): String = ".."
+}
+
+/// The current-directory marker `.`. Only appears as the sole component of the
+/// current-directory path itself; intermediate `.` segments are stripped during
+/// normalization.
+class CurrentDir {
+  function toString(): String = "."
+}
+
 /// Creates a path from a string.
 ///
 /// Separator runs are collapsed, extraneous `.` parts and trailing slashes are
 /// dropped and an empty path is represented as `.`.
 function unix(value: String): module =
-  let (collapseSeparators = (value) -> value.replaceAll(Regex("/+"), "/"))
+  let (collapseSeparators = (v) -> v.replaceAll(Regex("/+"), "/"))
+  let (dropTrailingSlash = (v) -> if (v != root && v.endsWith("/")) v.dropLast(1) else v)
   let (
-    dropTrailingSlash = (value) ->
-      if (value != root && value.endsWith("/")) value.dropLast(1) else value
-  )
-  let (
-    dropDots = (value) ->
-      value
+    dropDots = (v) ->
+      v
         .replaceFirst(Regex(#"^(\./(?!$))+"#), "")
         .replaceAll(Regex(#"/(\./)+"#), "/")
         .replaceFirst(Regex(#"(((?<!^)/|(?<=^/))\.)+$"#), "")
   )
-    (module) {
-      path =
-        if (value.isEmpty)
-          "."
-        else
-          value |> collapseSeparators |> dropTrailingSlash |> dropDots
-    }
+    if (value.isEmpty)
+      ofNormalized(".")
+    else
+      ofNormalized(value |> collapseSeparators |> dropTrailingSlash |> dropDots)
+
+local function ofNormalized(value: String): module = (module) { path = value }
 
 /// The path after Unix separator normalization.
 path: String(!isEmpty)
@@ -44,16 +70,32 @@ fixed isRelative: Boolean = !isAbsolute
 /// Tells whether this path is the root of the filesystem.
 fixed isRoot: Boolean = path == root
 
-/// The parts, including the root marker for absolute paths.
-fixed parts: List<String>(!isEmpty) =
-  let (rawSegments = path.split(separator))
-    if (isAbsolute) List(separator) + rawSegments.drop(1) else rawSegments
+/// The components of the path. Always non-empty.
+///
+/// The first element is the [Anchor] when the path is absolute, or [CurrentDir]
+/// for the current-directory path. A `..` segment is exposed as [ParentDir];
+/// other segments are [Normal].
+fixed parts: List<Component>(!isEmpty) =
+  if (path == ".")
+    List(new CurrentDir {})
+  else if (isRoot)
+    List(new Anchor { value = root })
+  else
+    let (rawSegments = path.split(separator))
+    let (segments = if (isAbsolute) rawSegments.drop(1) else rawSegments)
+    let (head: List<Component> = if (isAbsolute) List(new Anchor { value = separator }) else List())
+      head + segments.map((s) -> componentOf(s))
 
 /// The final segment of the path, or empty when the path has no segment.
 ///
 /// Root and the current-directory path have no name. `..` is treated as a
 /// regular segment and so has the name `..`.
-fixed name: String = if (isRoot || path == ".") "" else parts.last
+fixed name: String =
+  if (isRoot || path == ".")
+    ""
+  else
+    let (i = path.lastIndexOfOrNull(separator))
+      if (i == null) path else path.drop(i + 1)
 
 /// The final extension of `name`, including its leading dot, or empty when
 /// `name` has none. A leading or trailing dot in `name` is not treated as an
@@ -79,19 +121,19 @@ fixed suffixes: List<String> =
 /// The path with its final segment removed.
 ///
 /// Root and the current-directory path are their own parent. Other
-/// single-segment paths have `.` as their parent. The result is purely
-/// lexical, so `foo/..` has `foo` as its parent.
+/// single-segment paths have `.` as their parent. The result is purely lexical,
+/// so `foo/..` has `foo` as its parent.
 function parent(): module =
   if (isRoot || path == ".")
-    unix(path)
-  else if (parts.length == 1)
-    unix(".")
+    ofNormalized(path)
   else
-    let (init = parts.dropLast(1))
-      if (isAbsolute)
-        unix("\(separator)\(init.drop(1).join(separator))")
+    let (i = path.lastIndexOfOrNull(separator))
+      if (i == null)
+        ofNormalized(".")
+      else if (i == 0)
+        ofNormalized(separator)
       else
-        unix(init.join(separator))
+        ofNormalized(path.take(i))
 
 /// The chain of ancestors, ordered from immediate parent outward.
 function parents(): List<module> =
@@ -114,3 +156,6 @@ function join(other: module): module =
     other
   else
     unix("\(path)\(separator)\(other.path)")
+
+local function componentOf(segment: String): Component =
+  if (segment == "..") new ParentDir {} else new Normal { value = segment }

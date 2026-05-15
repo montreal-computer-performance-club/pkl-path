@@ -196,4 +196,37 @@ facts {
     Path.unix("/").parents() == List()
     Path.unix(".").parents() == List()
   }
+
+  ["matches startsWith component-wise rather than as a string prefix"] {
+    !Path.unix("/srv/appfoo").startsWith(Path.unix("/srv/app"))
+    !Path.unix("/foo").startsWith(Path.unix("/fo"))
+    Path.unix("/srv/app/config").startsWith(Path.unix("/srv"))
+    Path.unix("/srv/app/config").startsWith(Path.unix("/srv/app"))
+    !Path.unix("/srv").startsWith(Path.unix("/srv/app"))
+  }
+
+  ["matches startsWith invariant under trailing slashes"] {
+    Path.unix("/foo/bar/baz/").startsWith(Path.unix("/foo"))
+    Path.unix("/foo/bar/baz").startsWith(Path.unix("/foo/"))
+  }
+
+  ["matches startsWith returns false on anchor mismatch"] {
+    !Path.unix("foo").startsWith(Path.unix("/foo"))
+    !Path.unix("/foo").startsWith(Path.unix("foo"))
+  }
+
+  ["matches startsWith is reflexive and handles roots"] {
+    Path.unix("/").startsWith(Path.unix("/"))
+    Path.unix(".").startsWith(Path.unix("."))
+    Path.unix("foo").startsWith(Path.unix("foo"))
+    Path.unix("/foo/bar").startsWith(Path.unix("/"))
+    !Path.unix("foo").startsWith(Path.unix("."))
+    !Path.unix(".").startsWith(Path.unix("foo"))
+  }
+
+  ["matches startsWith treats .. as a regular component"] {
+    Path.unix("../foo").startsWith(Path.unix(".."))
+    !Path.unix("foo/..").startsWith(Path.unix(".."))
+    Path.unix("foo/..").startsWith(Path.unix("foo"))
+  }
 }

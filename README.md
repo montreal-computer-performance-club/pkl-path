@@ -81,6 +81,16 @@ base.join(Path.unix("config.pkl")) == Path.unix("/opt/app/config.pkl")
 base.join(Path.unix("/etc/override.pkl")) == Path.unix("/etc/override.pkl")
 ```
 
+`startsWith` tests whether a path is rooted in another, comparing whole
+components rather than character prefixes. `/srv/appfoo` does not start with
+`/srv/app`, because `appfoo` and `app` are different segments.
+
+```pkl
+Path.unix("/srv/app/config").startsWith(Path.unix("/srv/app"))
+!Path.unix("/srv/appfoo").startsWith(Path.unix("/srv/app"))
+!Path.unix("foo").startsWith(Path.unix("/foo"))
+```
+
 `Path` is purely lexical: `..` segments are preserved rather than resolved
 against the preceding segment. A Pkl program rendering configuration usually
 describes paths on a remote machine, a container, or a different operating

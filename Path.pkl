@@ -149,6 +149,15 @@ function parents(): List<module> =
   else
     let (p = parent()) List(p) + p.parents()
 
+/// Tells whether this path starts with `prefix`, comparing at the
+/// component-wise.
+///
+/// A relative path never starts with an absolute prefix or vice versa. `.` is a
+/// component on its own, so `foo` does not start with `.`.
+function startsWith(prefix: module): Boolean =
+  prefix.parts.length <= parts.length
+    && parts.take(prefix.parts.length) == prefix.parts
+
 function toString(): String = path
 
 function withTrailingSlash(): String = if (isRoot) path else "\(path)\(separator)"

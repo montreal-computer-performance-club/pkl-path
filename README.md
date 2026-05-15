@@ -5,21 +5,29 @@ such as syntactical normalization, splitting, and joining.
 
 ## Usage
 
-A path is stored in a canonical lexical form, such that path equality can be
-checked by directly comparing them. Repeated and trailing separators are
-respectively collapsed and removed, except for the root path `/`.
-
 Paths are created with the factory function `unix`.
 
 ```pkl
 import "Path.pkl"
 
-config = Path.unix("/srv/app/appsettings.json")
+config = Path.unix("/opt/app/appsettings.json")
 
-config == Path.unix("/srv/app/.//appsettings.json")
-config.path == "/srv/app/appsettings.json"
+config == Path.unix("/opt/app/.//appsettings.json")
+config.path == "/opt/app/appsettings.json"
 config.isAbsolute
-config.parts == List("/", "srv", "app", "appsettings.json")
+```
+
+`parts` is a list of typed `Component` values — `Anchor` for the root marker,
+`Normal` for a regular segment, `ParentDir` for `..`, and `CurrentDir` for `.`.
+Each component has a `toString()` method returning its rendered form.
+
+```
+config.parts == List(
+  new Path.Anchor { value = "/" },
+  new Path.Normal { value = "opt" },
+  new Path.Normal { value = "app" },
+  new Path.Normal { value = "appsettings.json" }
+)
 ```
 
 Relative paths are also representable.
@@ -29,7 +37,7 @@ state = Path.unix("../state/")
 
 state.path == "../state"
 state.isRelative
-state.parts == List("..", "state")
+state.parts == List(new Path.ParentDir {}, new Path.Normal { value = "state" })
 ```
 
 An empty path represents the current directory, like `.`.
@@ -39,7 +47,7 @@ current = Path.unix("")
 
 current == Path.unix(".")
 current.path == "."
-current.parts == List(".")
+current.parts == List(new Path.CurrentDir {})
 ```
 
 When a trailing separator matters for a command-line tool or wire format, render
@@ -47,36 +55,39 @@ it explicitly:
 
 ```pkl
 target = Path.unix("target")
-
 command = "rsync source/ \(target.withTrailingSlash())"
 ```
 
 A path's segments can be inspected without parsing strings yourself.
 
 ```pkl
-config = Path.unix("/srv/app/config.tar.gz")
+config = Path.unix("/usr/share/config.tar.gz")
 
 config.name == "config.tar.gz"
 config.stem == "config.tar"
 config.suffix == ".gz"
 config.suffixes == List(".tar", ".gz")
-config.parent() == Path.unix("/srv/app")
-config.parents() == List(Path.unix("/srv/app"), Path.unix("/srv"), Path.unix("/"))
+config.parent() == Path.unix("/usr/share")
+config.parents() == List(Path.unix("/usr/share"), Path.unix("/usr"), Path.unix("/"))
 ```
 
 Two paths can be joined. A relative path is appended to the base; an absolute
 path replaces it.
 
 ```pkl
-base = Path.unix("/srv/app")
+base = Path.unix("/opt/app")
 
-base.join(Path.unix("config.pkl")) == Path.unix("/srv/app/config.pkl")
+base.join(Path.unix("config.pkl")) == Path.unix("/opt/app/config.pkl")
 base.join(Path.unix("/etc/override.pkl")) == Path.unix("/etc/override.pkl")
 ```
 
 `Path` is purely lexical: `..` segments are preserved rather than resolved
-against the preceding segment, since the program cannot know how the host's
-symbolic links would resolve them.
+against the preceding segment. A Pkl program rendering configuration usually
+describes paths on a remote machine, a container, or a different operating
+system — there is no filesystem accessible to resolve `..` against. Even on
+a local filesystem, a directory in the path could be a symbolic link, so
+`foo/..` is not necessarily `.`. Lexical preservation is the only sound
+behavior under both conditions.
 
 ```pkl
 nested = Path.unix("/srv/app").join(Path.unix("../etc"))
@@ -85,7 +96,11 @@ nested.path == "/srv/app/../etc"
 nested.parent() == Path.unix("/srv/app/..")
 ```
 
-## Limitations
+## Normalization and limitations
+
+A path is stored in a canonical lexical form, such that path equality can be
+checked by directly comparing them. Repeated and trailing separators are
+respectively collapsed and removed, except for the root path `/`.
 
 Because Pkl is a configuration-as-code language, it provides only a subset of
 the usual features for such libraries. `Path` exposes an API for manipulating
@@ -93,3 +108,13 @@ path names, but does not interact with an actual filesystem. The reason is that
 most paths in a running Pkl program simply do not represent paths on the system
 running it (and also it's not possible to interact with the OS like this in pure
 Pkl).
+
+Because of this, normalization is not performed for `..`. The reason is that it
+does more than "eat away" the previous directory name. Resolving a path means
+visiting each segment in a sequence, and `..` is no different. You will go "up",
+but not necessarily back to where you were if the last segment was not a
+directory, but a symbolic link to a directory.
+
+While some languages like Bash and [Go](https://pkg.go.dev/path/filepath#Clean)
+do collapse `..` with the previous parent, we take the more cautious approach
+of others such as Python's `pathlib` and Rust's standard library.

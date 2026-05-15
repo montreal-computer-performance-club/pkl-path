@@ -178,6 +178,13 @@ facts {
     Path.unix("foo/").parent() == Path.unix(".")
   }
 
+  ["strips dot-dot segments lexically rather than resolving them"] {
+    Path.unix("../..").parent() == Path.unix("..")
+    Path.unix("a/b/..").parent() == Path.unix("a/b")
+    Path.unix("foo/../bar").parent() == Path.unix("foo/..")
+    Path.unix("../../..").parent() == Path.unix("../..")
+  }
+
   ["lists ancestors from immediate parent outward"] {
     Path.unix("/srv/app/config.pkl").parents()
       == List(Path.unix("/srv/app"), Path.unix("/srv"), Path.unix("/"))

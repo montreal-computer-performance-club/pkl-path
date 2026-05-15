@@ -121,8 +121,15 @@ fixed suffixes: List<String> =
 /// The path with its final segment removed.
 ///
 /// Root and the current-directory path are their own parent. Other
-/// single-segment paths have `.` as their parent. The result is purely lexical,
-/// so `foo/..` has `foo` as its parent.
+/// single-segment paths have `.` as their parent.
+///
+/// The result is purely lexical: the rightmost segment is stripped whatever it
+/// is, including `..`. So `foo/..` has `foo` as its parent (not `..`), `..` has
+/// `.` as its parent (not `../..`), and `a/b/..` has `a/b` as its parent (not
+/// `.`). If it seems wrong, it is simply because it is, but less so than the
+/// alternative, which will yield different normalized paths in the presence of
+/// symlinks. This creates bugs that are hard to discover and have security
+/// implications.
 function parent(): module =
   if (isRoot || path == ".")
     ofNormalized(path)

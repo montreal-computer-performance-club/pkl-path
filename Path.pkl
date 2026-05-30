@@ -173,5 +173,36 @@ function join(other: module): module =
   else
     unix("\(path)\(separator)\(other.path)")
 
+/// This path expressed relative to `base`.
+///
+/// `base.join(this.relativeTo(base)) == this` holds under lexical equality
+/// (before any type of path resolution). Both paths must either be relative, or have the
+/// same anchor. This path must be a descendant of base`.
+function relativeTo(base: module): module =
+  if (isAbsolute != base.isAbsolute)
+    throw(
+      "Cannot make '\(path)' relative to '\(base.path)': both paths must be either absolute or relative."
+    )
+  else
+    let (partsA = if (path == ".") List() else parts)
+    let (partsB = if (base.path == ".") List() else base.parts)
+    let (common = commonPrefixLength(partsA, partsB))
+      if (common < partsB.length)
+        throw("'\(path)' is not in the subpath of '\(base.path)'.")
+      else
+        buildRelative(partsA.drop(common))
+
+local function commonPrefixLength(a: List<Component>, b: List<Component>): Int =
+  if (a.isEmpty || b.isEmpty || a.first != b.first)
+    0
+  else
+    1 + commonPrefixLength(a.drop(1), b.drop(1))
+
+local function buildRelative(components: List<Component>): module =
+  if (components.isEmpty)
+    ofNormalized(".")
+  else
+    ofNormalized(components.map((c) -> c.toString()).join(separator))
+
 local function componentOf(segment: String): Component =
   if (segment == "..") new ParentDir {} else new Normal { value = segment }

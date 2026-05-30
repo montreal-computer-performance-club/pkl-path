@@ -24,16 +24,18 @@ facts {
   }
 
   ["exposes parts including unix root"] {
-    Path.unix("/srv/app/./config.pkl").parts == List(
-      new Path.Anchor { value = "/" },
-      new Path.Normal { value = "srv" },
-      new Path.Normal { value = "app" },
-      new Path.Normal { value = "config.pkl" }
-    )
-    Path.unix("../state/").parts == List(
-      new Path.ParentDir {},
-      new Path.Normal { value = "state" }
-    )
+    Path.unix("/srv/app/./config.pkl").parts
+      == List(
+        new Path.Anchor { value = "/" },
+        new Path.Normal { value = "srv" },
+        new Path.Normal { value = "app" },
+        new Path.Normal { value = "config.pkl" },
+      )
+    Path.unix("../state/").parts
+      == List(
+        new Path.ParentDir {},
+        new Path.Normal { value = "state" },
+      )
     Path.unix(".config").parts == List(new Path.Normal { value = ".config" })
     Path.unix("/").parts == List(new Path.Anchor { value = "/" })
     Path.unix("").parts == List(new Path.CurrentDir {})
@@ -58,14 +60,16 @@ facts {
 
   ["preserves dot-dot parts"] {
     Path.unix("/srv/app/../config.pkl").path == "/srv/app/../config.pkl"
-    Path.unix("../srv").parts == List(
-      new Path.ParentDir {},
-      new Path.Normal { value = "srv" }
-    )
-    Path.unix("srv/..").parts == List(
-      new Path.Normal { value = "srv" },
-      new Path.ParentDir {}
-    )
+    Path.unix("../srv").parts
+      == List(
+        new Path.ParentDir {},
+        new Path.Normal { value = "srv" },
+      )
+    Path.unix("srv/..").parts
+      == List(
+        new Path.Normal { value = "srv" },
+        new Path.ParentDir {},
+      )
   }
 
   ["renders path strings"] {
@@ -228,5 +232,39 @@ facts {
     Path.unix("../foo").startsWith(Path.unix(".."))
     !Path.unix("foo/..").startsWith(Path.unix(".."))
     Path.unix("foo/..").startsWith(Path.unix("foo"))
+  }
+
+  ["computes relativeTo for descendant paths"] {
+    Path.unix("/srv/app/config.pkl").relativeTo(Path.unix("/srv/app"))
+      == Path.unix("config.pkl")
+    Path.unix("/srv/app").relativeTo(Path.unix("/srv")) == Path.unix("app")
+    Path.unix("foo/bar/baz").relativeTo(Path.unix("foo")) == Path.unix("bar/baz")
+    Path.unix("/srv/app/config").relativeTo(Path.unix("/")) == Path.unix("srv/app/config")
+  }
+
+  ["yields the current-directory path when relativeTo equals self"] {
+    Path.unix("/srv/app").relativeTo(Path.unix("/srv/app")) == Path.unix(".")
+    Path.unix("foo/bar").relativeTo(Path.unix("foo/bar")) == Path.unix(".")
+    Path.unix("/").relativeTo(Path.unix("/")) == Path.unix(".")
+    Path.unix(".").relativeTo(Path.unix(".")) == Path.unix(".")
+  }
+
+  ["treats relativeTo against the current directory as identity"] {
+    Path.unix("foo").relativeTo(Path.unix(".")) == Path.unix("foo")
+    Path.unix("foo/bar").relativeTo(Path.unix("")) == Path.unix("foo/bar")
+    Path.unix("..").relativeTo(Path.unix(".")) == Path.unix("..")
+  }
+
+  ["preserves dot-dot segments in the descendant when computing relativeTo"] {
+    // JDK-8066943 regression: trailing .. in `this` survives stripping the
+    // common prefix from `base`.
+    Path.unix("/p1/p2/p3/..").relativeTo(Path.unix("/p1")) == Path.unix("p2/p3/..")
+    Path.unix("foo/../bar").relativeTo(Path.unix("foo")) == Path.unix("../bar")
+  }
+
+  ["satisfies the relativeTo round-trip invariant"] {
+    local base = Path.unix("/srv/app")
+    local descendant = Path.unix("/srv/app/etc/config.pkl")
+    base.join(descendant.relativeTo(base)) == descendant
   }
 }

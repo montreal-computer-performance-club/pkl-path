@@ -91,6 +91,15 @@ Path.unix("/srv/app/config").startsWith(Path.unix("/srv/app"))
 !Path.unix("foo").startsWith(Path.unix("/foo"))
 ```
 
+`relativeTo` rebases a path against an ancestor. The base must share the same
+anchor (both absolute or both relative) and must be a prefix of the path —
+otherwise the call throws.
+
+```pkl
+Path.unix("/srv/app/config.pkl").relativeTo(Path.unix("/srv/app")) == Path.unix("config.pkl")
+Path.unix("/srv/app").relativeTo(Path.unix("/srv/app")) == Path.unix(".")
+```
+
 `Path` is purely lexical: `..` segments are preserved rather than resolved
 against the preceding segment. A Pkl program rendering configuration usually
 describes paths on a remote machine, a container, or a different operating
